@@ -13,6 +13,14 @@ import igraph
 
 # <codecell>
 
+def nx_to_igraph(nxG):
+    a=nx.adjacency_matrix(nxG);
+    aa=list(np.array(a));
+    g=igraph.Graph.Weighted_Adjacency(aa);
+    return g;
+
+# <codecell>
+
 def timevarying_graph_generator(data, edgelist,dim):
     print data.shape, edgelist.shape
     tempG={};
@@ -259,10 +267,11 @@ def spinglass_partition(TG, t_min, t_max):
 
     new_graph=aggregate_graph(TG_suppl);
     print new_graph.number_of_nodes();
-    nx.write_pajek(new_graph,'temp_graph.net');
-    g=ig.read('temp_graph.net',format="pajek")
-    os.remove('temp_graph.net');
-    Q=g.community_spinglass()
+
+#    nx.write_pajek(new_graph,'temp_graph.net');
+#    g=ig.read('temp_graph.net',format="pajek")
+#    os.remove('temp_graph.net');
+    Q=nx_to_igraph(new_graph).community_spinglass()
     part_q={};
  #   print Q
     for i,mem in enumerate(Q.membership):
@@ -283,10 +292,12 @@ def modularity_partition(TG, t_min, t_max):
 
     new_graph=aggregate_graph(TG_suppl);
     print new_graph.number_of_nodes();
-    nx.write_pajek(new_graph,'temp_graph.net');
-    g=ig.read('temp_graph.net',format="pajek")
-    os.remove('temp_graph.net');
-    Q=g.community_optimal_modularity();
+   
+#    nx.write_pajek(new_graph,'temp_graph.net');
+#    g=ig.read('temp_graph.net',format="pajek")
+#    os.remove('temp_graph.net');
+    Q=nx_to_igraph(new_graph).community_optimal_modularity()
+
     part_q={};
 #    print Q
     for i,mem in enumerate(Q.membership):
@@ -307,10 +318,11 @@ def infomap_partition(TG, t_min, t_max):
 
     new_graph=aggregate_graph(TG_suppl);
     print new_graph.number_of_nodes();
-    nx.write_pajek(new_graph,'temp_graph.net');
-    g=ig.read('temp_graph.net',format="pajek")
-    os.remove('temp_graph.net');
-    Q=g.community_infomap();
+#    nx.write_pajek(new_graph,'temp_graph.net');
+#    g=ig.read('temp_graph.net',format="pajek")
+#    os.remove('temp_graph.net');
+    Q=nx_to_igraph(new_graph).community_infomap()
+
     part_q={};
 #    print Q
     for i,mem in enumerate(Q.membership):
