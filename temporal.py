@@ -296,7 +296,7 @@ def modularity_partition(TG, t_min, t_max):
 #    nx.write_pajek(new_graph,'temp_graph.net');
 #    g=ig.read('temp_graph.net',format="pajek")
 #    os.remove('temp_graph.net');
-    Q=nx_to_igraph(new_graph).community_optimal_modularity()
+    Q=nx_to_igraph(new_graph).community_optimal_modularity();
 
     part_q={};
 #    print Q
@@ -328,15 +328,19 @@ def infomap_partition(TG, t_min, t_max):
     for i,mem in enumerate(Q.membership):
             part_q[i]=[];
             part_q[i]=mem;
-    print 'Number of clusters = ', len(list(set(part_q.values())));
+    #print 'Number of clusters = ', len(list(set(part_q.values())));
     return part_q;
 
 
-def fixed_delta_t_temporal_partition(TG, delta_t):
+def fixed_delta_t_temporal_partition(TG, delta_t,mode='modularity',verbose=False):
     T_partition={};
     for t in range(0,len(TG)-delta_t, delta_t):
         T_partition[t]=[];
-        print 'Calculating infomap of slice ', t; 
-        T_partition[t]=infomap_partition(TG,t,t+delta_t);
+        if verbose==True:
+            print 'Calculating infomap of slice ', t; 
+        if mode=='modularity':
+            T_partition[t]=modularity_partition(TG,t,t+delta_t);
+        elif mode=='infomap':
+            T_partition[t]=infomap_partition(TG,t,t+delta_t);
     return T_partition;
 
