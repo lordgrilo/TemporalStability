@@ -16,12 +16,17 @@ import igraph
 def nx_to_igraph(nxG):
     a=nx.adjacency_matrix(nxG);
     aa=list(np.array(a));
-    g=igraph.Graph.Weighted_Adjacency(aa);
+    g=igraph.Graph.Weighted_Adjacency(aa, attr="weight", loops=True);
     return g;
 
 # <codecell>
 
-def timevarying_graph_generator(data, edgelist,dim):
+def timevarying_graph_generator(data, edgelist_file,dim):
+    primal_graph=nx.read_edgelist(edgelist_file);
+    edgelist=[];
+    for edge in primal_graph.edges():
+        edgelist.append([edge[0],edge[1]]);
+    edgelist=np.array(edgelist)
     print data.shape, edgelist.shape
     tempG={};
     if dim!=0:
@@ -29,7 +34,6 @@ def timevarying_graph_generator(data, edgelist,dim):
     print data.shape
     T=data.shape[1];
     print T
-    primal_graph=nx.read_edgelist(edgelist_file);
     nodes=primal_graph.nodes()
     relabel_dict={};
     count=0;
@@ -181,6 +185,28 @@ def aggregate_graph(TG):
 
     return new_graph;
 
+
+def limited_aggregate_graph(TG,t_min,scale,periodic=True):
+    new_graph=nx.Graph();
+    tmax=np.max(TG.keys());
+    for t in range(t_min,t_min+scale):
+        if periodic==True:
+            graph=TG[t%tmax];
+        else:
+            graph=TG[t];
+        for node in graph.nodes():
+            if not new_graph.has_node(node):
+                new_graph.add_node(node);
+        for edge in graph.edges(data=True):
+            if new_graph.has_edge(edge[0],edge[1]):
+                new_graph[edge[0]][edge[1]]['weight']+=1;
+            else:
+                new_graph.add_edge(edge[0], edge[1], weight=1);
+
+    return new_graph;
+
+
+
 # <codecell>
 
 def exponential_weighted_aggregated_temporal_graph(TG,omega=0.1):
@@ -200,17 +226,28 @@ def exponential_weighted_aggregated_temporal_graph(TG,omega=0.1):
 
 # <codecell>
 
-def instant_partition_matrix(partition):
+def instant_partition_matrix(partition,verbose=False):
     partition_index={};
     for i,p in enumerate(list(set(partition.values()))):
         partition_index[p]=i;
     N=len(list(set(partition.keys())));
     num_comms=len(list(set(partition.values())));        
     H=np.zeros((N,num_comms));
-    print H.shape;
+    if verbose==True:
+        print H.shape;
     for node in partition:
         H[node][partition_index[partition[node]]]=1;
     return H; 
+
+
+def stationary_matrix(w):
+    N=len(w);
+    stationary_matrix=np.zeros((N,N));
+    for i,n in enumerate(w):
+        for j,l in enumerate(w):
+            stationary_matrix[i][j]=n*l;
+    return stationary_matrix;
+
 
 
 def temporal_projected_stationary_stability(TG,M_matrices, w, tau_values, temporal_partition, show_fig=False):
@@ -249,8 +286,11 @@ def temporal_projected_stationary_stability(TG,M_matrices, w, tau_values, tempor
                 M_disposable=np.dot(M_disposable,M_matrices[keys[t+i]]);
             M_disposable=np.dot(np.diag(w,0),M_disposable) - stationary_matrix;
             tr_av.append(np.trace(np.dot(H.T,np.dot(M_disposable,H))));
+            del M_disposable;
+        del H;
         proj_R_tau[tau] = [];
         proj_R_tau[tau] = np.mean(tr_av);
+        del tr_av;
     return proj_R_tau;
 
 
@@ -279,6 +319,34 @@ def spinglass_partition(TG, t_min, t_max):
             part_q[i]=mem;
     return part_q;
 
+
+def fast_modularity_partition(TG, t_min, t_max):
+    import igraph as ig;
+    import os;
+
+    #select correct section of times
+    TG_suppl={};
+    for t in TG:
+        if t>=t_min and t<t_max:
+            TG_suppl[t]=[];
+            TG_suppl[t]=TG[t];
+
+    new_graph=aggregate_graph(TG_suppl);
+    #print new_graph.number_of_nodes();
+   
+#    nx.write_pajek(new_graph,'temp_graph.net');
+#    g=ig.read('temp_graph.net',format="pajek")
+#    os.remove('temp_graph.net');
+    Q=nx_to_igraph(new_graph).community_fastgreedy();
+    return Q; 
+#     part_q={};
+# #    print Q
+#     for i,mem in enumerate(Q.membership):
+#             part_q[i]=[];
+#             part_q[i]=mem;
+#     return part_q;
+
+
 def modularity_partition(TG, t_min, t_max):
     import igraph as ig;
     import os;
@@ -291,7 +359,7 @@ def modularity_partition(TG, t_min, t_max):
             TG_suppl[t]=TG[t];
 
     new_graph=aggregate_graph(TG_suppl);
-    print new_graph.number_of_nodes();
+    #print new_graph.number_of_nodes();
    
 #    nx.write_pajek(new_graph,'temp_graph.net');
 #    g=ig.read('temp_graph.net',format="pajek")
@@ -317,7 +385,7 @@ def infomap_partition(TG, t_min, t_max):
             TG_suppl[t]=TG[t];
 
     new_graph=aggregate_graph(TG_suppl);
-    print new_graph.number_of_nodes();
+    #print new_graph.number_of_nodes();
 #    nx.write_pajek(new_graph,'temp_graph.net');
 #    g=ig.read('temp_graph.net',format="pajek")
 #    os.remove('temp_graph.net');
@@ -342,5 +410,124 @@ def fixed_delta_t_temporal_partition(TG, delta_t,mode='modularity',verbose=False
             T_partition[t]=modularity_partition(TG,t,t+delta_t);
         elif mode=='infomap':
             T_partition[t]=infomap_partition(TG,t,t+delta_t);
+        elif mode=='fastgreedy':
+            print 'Greedy modularity chosen.'
+            T_partition[t]=fast_modularity_partition(TG,t,t+delta_t);
     return T_partition;
+
+
+def fixed_tau_m_series_partition(M_series,sm,w,tau,mode='multilevel',verbose=False):
+    tau_partition={}
+    for t in range(max(M_series.keys())):
+        if verbose==True:
+            print t;
+        tau_partition[t]=[];
+
+        M_disposable=np.eye(len(M_series[t]));
+        for i in range(tau+1):
+            M_disposable=np.dot(M_disposable,M_series[(t+i)%len(M_series)]);
+        M_disposable=np.dot(np.diag(w,0),M_disposable);# - sm;
+        print M_disposable
+        g=igraph.Graph.Weighted_Adjacency(list(np.array(M_disposable) + np.array(M_disposable).transpose()), attr="weight", loops=True);
+        g.to_undirected(combine_edges='mean');
+        print g.is_directed()
+        if mode=='multilevel':
+            tau_partition[t]=g.community_multilevel(weights='weight');
+        if mode=='fast_greedy':
+            tau_partition[t]=g.community_fastgreedy(weights='weight');
+        if mode=='leading_eigenvector':
+            tau_partition[t]=g.community_leading_eigenvector();
+        if mode=='optimal_modularity':
+            tau_partition[t]=g.community_optimal_modularity(verbose=True);
+        if mode=='spinglass':
+            tau_partition[t]=g.community_spinglass(weights='weight');
+        if mode=='infomap':
+            tau_partition[t]=g.community_infomap(edge_weights='weight');
+
+    return tau_partition;
+
+
+
+def fixed_tau_m_series_partition_no_igraph(M_series,sm,w,tau,verbose=False):
+    import community;
+    import matplotlib.pyplot as plt
+    tau_partition={}
+    for t in range(max(M_series.keys())):
+        if verbose==True:
+            print t;
+        tau_partition[t]=[];
+        M_disposable=np.eye(len(M_series[t]));
+        for i in range(tau+1):
+            M_disposable=np.dot(M_disposable,M_series[(t+i)%len(M_series)]);
+        M_disposable=np.dot(np.diag(w,0),M_disposable);# - sm;
+        g=nx.to_networkx_graph(M_disposable+M_disposable.T - np.diag(M_disposable.diagonal()) ,create_using=nx.Graph()); 
+        #print g.number_of_nodes(), g.number_of_edges(), sum(g.degree().values())
+        tau_partition[t] = community.best_partition(g);
+        if verbose==True:
+            plt.figure, plt.pcolor(np.array(nx.to_numpy_matrix(g))), plt.colorbar();
+            plt.show()
+            print tau_partition[t]
+    return tau_partition;
+
+def t_delta_matrix(mat,M_series,t,tau,verbose=False):    
+    if verbose==True:
+        print t;
+    t_delta_matrix=mat;
+    t_delta_matrix=np.dot(t_delta_matrix,M_series[(t+tau)%len(M_series)]);
+    #t_delta_matrix=np.dot(np.diag(w,0),t_delta_matrix);# - sm;
+    return t_delta_matrix;
+
+def t_delta_partition(t_delta_matrix,sm,verbose=False):
+    import community;
+    g=nx.to_networkx_graph(t_delta_matrix+t_delta_matrix.T - np.diag(t_delta_matrix.diagonal()) ,create_using=nx.Graph()); 
+    if verbose==True:
+        plt.figure, plt.pcolor(np.array(nx.to_numpy_matrix(g))), plt.colorbar();
+        plt.show()
+    return community.best_partition(g);
+
+
+def VI_quiver_plot(partitions_dict,verbose=False):
+    from pylab import *
+    from numpy import ma
+    import igraph as ig
+    U=np.zeros((len(partitions_dict),len(partitions_dict[0])));
+    V=np.zeros((len(partitions_dict),len(partitions_dict[0])));
+    X=np.zeros((len(partitions_dict),len(partitions_dict[0])));
+    Y=np.zeros((len(partitions_dict),len(partitions_dict[0])));
+    
+    n_deltas=len(partitions_dict);
+    for i,delta in enumerate(sorted(partitions_dict.keys())):
+        for j,t in enumerate(sorted(partitions_dict[delta].keys())):
+            X[i,j]=delta;
+            Y[i,j]=t;
+            try:
+                a=(ig.compare_communities(partitions_dict[delta][t].values(), partitions_dict[delta][partitions_dict[delta].keys()[j+1]%max(partitions_dict[delta].keys())].values()));
+                b=(ig.compare_communities(partitions_dict[partitions_dict.keys()[(i+1)%max(partitions_dict.keys())]][t].values(), partitions_dict[delta][t].values()));
+                if a!=0:
+                    U[i,j]=a;
+                if b!=0:
+                    V[i,j]=b;
+            except:
+                if verbose==True:
+                    print 'Error at:', (i,j),(delta,t)
+    
+    figure(figsize=(10,10))
+    Q = quiver( U, V)
+    qk = quiverkey(Q, 0.5, 0.92, 2, r'$2 \frac{m}{s}$', labelpos='W',
+                   fontproperties={'weight': 'bold'})
+    l,r,b,t = axis();
+    dx, dy = r-l, t-b
+    axis([l-0.05*dx, r+0.05*dx, b-0.05*dy, t+0.05*dy])
+
+    title('Minimal arguments, no kwargs');
+    show();
+
+    return X,Y,U,V;
+
+
+
+
+
+
+
 
