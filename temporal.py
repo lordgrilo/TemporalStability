@@ -266,6 +266,7 @@ def temporal_projected_stationary_stability(TG,M_matrices, w, tau_values, tempor
         for j,l in enumerate(w):
             stationary_matrix[i][j]=n*l;
     
+    
     #start of loop on markov times 
     for tau in tau_values:
         print tau
@@ -274,13 +275,16 @@ def temporal_projected_stationary_stability(TG,M_matrices, w, tau_values, tempor
         tr_av=[];
         keys=M_matrices.keys();
         current_partition_time=0;
-        #start of loop on physical times
+        
         H=instant_partition_matrix(temporal_partition[partition_temporal_swaps[current_partition_time]]);
+        #start of loop on physical times
         for t in range(len(M_matrices)-tau):
+            
             #check whether the partition is still the correct one for the physical time
             if partition_temporal_swaps[(current_partition_time+1)%len(partition_temporal_swaps)]<=t and (current_partition_time+1)<len(partition_temporal_swaps):
                 current_partition_time+=1;
                 H=instant_partition_matrix(temporal_partition[partition_temporal_swaps[current_partition_time]]);
+            
             M_disposable=np.eye(N);
             for i in range(tau):
                 M_disposable=np.dot(M_disposable,M_matrices[keys[t+i]]);
@@ -527,6 +531,90 @@ def VI_quiver_plot(partitions_dict,verbose=False):
 
 
 
+def temporal_stats(real_TG):
+    av_real=[];
+    for t in real_TG:
+        av_real.append(2*float(real_TG[t].number_of_edges())/float(real_TG[t].number_of_nodes()))
+
+    active_nodes=[];
+    for t in real_TG:
+        count=0;
+        deg=nx.degree(real_TG[t])
+        for n in deg:
+            if deg[n]>0: count+=1 
+        active_nodes.append(count)
+    print 'Average temporal degree ',mean(av_real)
+    print 'Average number of active nodes ', mean(active_nodes)/float(real_TG[t].number_of_nodes())
+
+#########################################################################################################
+##################### New code for activity values etc (it works @15/6/2013)
+####################################################################################################################
+
+def activity_potential(TG):
+    activity_V={}
+    for t in real_TG:
+        count=0;
+        deg=nx.degree(real_TG[t])
+        for n in deg:
+            if deg[n]>0: 
+                if n in activity_V:
+                    activity_V[n]+=1;
+                else:
+                     activity_V[n]=1;
+    for n in activity_V:
+        activity_V[n]=float(activity_V[n])/float(len(TG));
+    return activity_V;
+
+def eta_fitter(activity_V,average_degree,m):
+    av_x=np.mean(activity_V.values());
+    return float(average_degree)/float(av_x * m);
+    
+def final_activity_dict(activity_V,eta):
+    activity_dict={}
+    for n in activity_V:
+        activity_dict[n]=activity_V[n]*eta;
+    return activity_dict;
+
+
+def activity_model_random_graph(activity_dict,m=2,T=100):
+    import networkx as nx 
+    import sys, os
+    import pickle
+    import random
+    
+    # temporal graph dictionary
+    TG={};
+    nodes=activity_dict.keys();
+    for t in range(T):
+        g=nx.Graph();
+        g.add_nodes_from(nodes);
+        for node in activity_dict:
+            if random.random()<=activity_dict[node]:
+                # activation!
+                nodes_removed=activity_dict.keys();
+                nodes_removed.remove(node);
+                new_neighbours=[];
+                for i in range(m):
+                    new_neighbours.append(random.choice(nodes_removed));
+                    g.add_edge(node,new_neighbours[-1]);
+                    nodes_removed.remove(new_neighbours[-1]);
+        TG[t]=[];   
+        TG[t]=g;
+    
+    return TG;
+
+def edge_activation_output_matrix(TG):
+    edgelist=[];
+    for t in TG:
+        edgelist.extend(TG[t].edges());
+    edgelist=list(set(edgelist));
+
+    edge_activation_matrix=np.zeros((len(edgelist),len(TG)),dtype=np.int);
+    for i,edge in enumerate(edgelist):
+        for t in TG:
+            if TG[t].has_edge(edge[0],edge[1]):
+                edge_activation_matrix[i,t]=1;
+    return edge_activation_matrix,edgelist;
 
 
 
