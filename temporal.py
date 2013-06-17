@@ -552,9 +552,9 @@ def temporal_stats(real_TG):
 
 def activity_potential(TG):
     activity_V={}
-    for t in real_TG:
+    for t in TG:
         count=0;
-        deg=nx.degree(real_TG[t])
+        deg=nx.degree(TG[t])
         for n in deg:
             if deg[n]>0: 
                 if n in activity_V:
@@ -609,7 +609,7 @@ def edge_activation_output_matrix(TG):
         edgelist.extend(TG[t].edges());
     edgelist=list(set(edgelist));
 
-    edge_activation_matrix=np.zeros((len(edgelist),len(TG)),dtype=np.int);
+    edge_activation_matrix=nos((len(edgelist),len(TG)),dtype=np.int);
     for i,edge in enumerate(edgelist):
         for t in TG:
             if TG[t].has_edge(edge[0],edge[1]):
