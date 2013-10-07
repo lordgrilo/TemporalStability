@@ -325,8 +325,11 @@ def temporal_projected_stationary_stability(TG,M_matrices, w, tau_values, tempor
         proj_R_tau[tau] = [];
         proj_R_tau[tau] = np.mean(tr_av);
         del tr_av;
+<<<<<<< HEAD
     del stationary_matrix;
     gc.collect();
+=======
+>>>>>>> b51df83c58ee477a9501df398827f18533410e8d
     return proj_R_tau;
 
 
@@ -451,6 +454,7 @@ def fixed_delta_t_temporal_partition(TG, delta_t,mode='modularity',verbose=False
             T_partition[t]=fast_modularity_partition(TG,t,t+delta_t);
     return T_partition;
 
+<<<<<<< HEAD
 def slice_temporal_modularity_partition(TG,d):
     import community
     T_partition={};
@@ -462,6 +466,8 @@ def slice_temporal_modularity_partition(TG,d):
         new_graph=aggregate_graph(TG_suppl);
         T_partition[t]=community.best_partition(new_graph);
     return T_partition;
+=======
+>>>>>>> b51df83c58ee477a9501df398827f18533410e8d
 
 def fixed_tau_m_series_partition(M_series,sm,w,tau,mode='multilevel',verbose=False):
     tau_partition={}
@@ -516,6 +522,7 @@ def fixed_tau_m_series_partition_no_igraph(M_series,sm,w,tau,verbose=False):
             print tau_partition[t]
     return tau_partition;
 
+<<<<<<< HEAD
 def t_delta_matrix(matt,M_series,t,tau,verbose=False):    
     if verbose==True:
         print t;
@@ -523,11 +530,23 @@ def t_delta_matrix(matt,M_series,t,tau,verbose=False):
     #t_delta_matrix=np.dot(t_delta_matrix,M_series[(t+tau)%len(M_series)]);
     #t_delta_matrix=np.dot(np.diag(w,0),t_delta_matrix);# - sm;
     return np.dot(matt,M_series[(t+tau)%len(M_series)]);
+=======
+def t_delta_matrix(mat,M_series,t,tau,verbose=False):    
+    if verbose==True:
+        print t;
+    t_delta_matrix=mat;
+    t_delta_matrix=np.dot(t_delta_matrix,M_series[(t+tau)%len(M_series)]);
+    #t_delta_matrix=np.dot(np.diag(w,0),t_delta_matrix);# - sm;
+    return t_delta_matrix;
+>>>>>>> b51df83c58ee477a9501df398827f18533410e8d
 
 def t_delta_partition(t_delta_matrix,sm,verbose=False):
     import community;
     g=nx.to_networkx_graph(t_delta_matrix+t_delta_matrix.T - np.diag(t_delta_matrix.diagonal()) ,create_using=nx.Graph()); 
+<<<<<<< HEAD
     # there is a problem here because we are not removing the null model!!!!! merdaccia cane!!!!!!
+=======
+>>>>>>> b51df83c58ee477a9501df398827f18533410e8d
     if verbose==True:
         plt.figure, plt.pcolor(np.array(nx.to_numpy_matrix(g))), plt.colorbar();
         plt.show()
@@ -537,6 +556,10 @@ def t_delta_partition(t_delta_matrix,sm,verbose=False):
 def VI_quiver_plot(partitions_dict,verbose=False):
     from pylab import *
     from numpy import ma
+<<<<<<< HEAD
+=======
+    import igraph as ig
+>>>>>>> b51df83c58ee477a9501df398827f18533410e8d
     U=np.zeros((len(partitions_dict),len(partitions_dict[0])));
     V=np.zeros((len(partitions_dict),len(partitions_dict[0])));
     X=np.zeros((len(partitions_dict),len(partitions_dict[0])));
@@ -573,6 +596,7 @@ def VI_quiver_plot(partitions_dict,verbose=False):
 
 
 
+<<<<<<< HEAD
 def VI_quiver_data(partitions_dict,mode='vi',verbose=False):
     from pylab import *
     from numpy import ma
@@ -742,6 +766,8 @@ def NVI_quiver_data(partitions_dict,verbose=False):
 
 
 
+=======
+>>>>>>> b51df83c58ee477a9501df398827f18533410e8d
 
 def temporal_stats(real_TG):
     av_real=[];
@@ -755,8 +781,13 @@ def temporal_stats(real_TG):
         for n in deg:
             if deg[n]>0: count+=1 
         active_nodes.append(count)
+<<<<<<< HEAD
     print 'Average temporal degree ', np.mean(av_real)
     print 'Average number of active nodes ', np.mean(active_nodes)/float(real_TG[t].number_of_nodes())
+=======
+    print 'Average temporal degree ',mean(av_real)
+    print 'Average number of active nodes ', mean(active_nodes)/float(real_TG[t].number_of_nodes())
+>>>>>>> b51df83c58ee477a9501df398827f18533410e8d
 
 #########################################################################################################
 ##################### New code for activity values etc (it works @15/6/2013)
