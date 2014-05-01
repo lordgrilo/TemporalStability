@@ -1,7 +1,15 @@
-# -*- coding: utf-8 -*-
-# <nbformat>3.0</nbformat>
-
-# <codecell>
+"""
+This module implements the temporal stability community detection described in 
+Petri G, Expert P, Temporal stability of network partitions 
+arXiv:1404.7170 [physics.soc-ph]
+"""
+#__all__ = [""]
+__author__ = """Giovanni Petri (petri.giovanni@gmail.com) , Paul Expert (paul.expert@kcl.ac.uk)"""
+#    Copyright (C) 2014 by
+#    Giovanni  Petri <petri.giovanni@gmail.com>
+#    Paul Expert <paul.expert@kcl.ac.uk>
+#    All rights reserved.
+#    BSD license.
 
 import numpy as np;
 import networkx as nx
@@ -10,16 +18,13 @@ import os, sys
 import scipy.linalg
 import matplotlib.pyplot as plt
 import igraph
-
-# <codecell>
-
+ 
 def nx_to_igraph(nxG):
     a=nx.adjacency_matrix(nxG);
     aa=list(np.array(a));
     g=igraph.Graph.Weighted_Adjacency(aa, attr="weight", loops=True);
     return g;
 
-# <codecell>
 
 def timevarying_graph_generator(data, edgelist_file,dim):
     primal_graph=nx.read_edgelist(edgelist_file);
@@ -57,7 +62,7 @@ def timevarying_graph_generator(data, edgelist_file,dim):
         tempG[t]=g;
     return tempG;
 
-# <codecell>
+ 
 
 def calculate_transition_matrices(TG,N=None):
     transition_matrix_dict={};
@@ -113,8 +118,6 @@ def calculate_directed_transition_matrices(TG,N=None):
 
 
 
-
-# <codecell>
 
 def activity_values(TG,m=1):
     N=0;
@@ -174,29 +177,6 @@ def stationary_weights_distributions(activity_dict,m,num_walkers,epsilon=0.1):
     
     return w/np.sum(w);
 
-# <codecell>
-
-def project_onto_community(TG, unproj_R, partition):
-    projected_R_tau={};
-    N=0;
-    for t in TG:
-        graph=TG[t];
-        if graph.number_of_nodes()>N:
-            N=graph.number_of_nodes();
-    num_comms=len(list(set(partition.values())));        
-    partition_index={};
-    for i,p in enumerate(list(set(partition.values()))):
-        partition_index[p]=i;
-    H=np.zeros((N,num_comms));
-    print H.shape;
-    for node in partition:
-        H[node][partition_index[partition[node]]]=1;
-    for key in unproj_R:
-        projected_R_tau[key]=[];
-        projected_R_tau[key] = np.trace(np.dot(np.transpose(H),np.dot(unproj_R[key],H))); 
-    return projected_R_tau;
-
-# <codecell>
 
 def aggregate_graph(TG):
     new_graph=nx.Graph();
@@ -233,9 +213,7 @@ def limited_aggregate_graph(TG,t_min,scale,periodic=True):
 
     return new_graph;
 
-
-
-# <codecell>
+ 
 
 def exponential_weighted_aggregated_temporal_graph(TG,omega=0.1):
     edge_dict={};
@@ -251,8 +229,7 @@ def exponential_weighted_aggregated_temporal_graph(TG,omega=0.1):
         w=np.sum(np.exp(-float(omega)*np.diff(np.array(edge_dict[edge]))));
         ExpG.add_edge(edge[0],edge[1],weight=w);
     return ExpG;
-
-# <codecell>
+ 
 
 def instant_partition_matrix(partition,verbose=False):
     partition_index={};
@@ -296,7 +273,6 @@ def temporal_projected_stationary_stability(TG,M_matrices, w, tau_values, tempor
         for j,l in enumerate(w):
             stationary_matrix[i][j]=n*l;
     
-    
     #start of loop on markov times 
     for tau in tau_values:
         print tau
@@ -333,9 +309,7 @@ def temporal_projected_stationary_stability(TG,M_matrices, w, tau_values, tempor
 def spinglass_partition(TG, t_min, t_max):
     import igraph as ig;
     import os;
-
     TG_suppl={};
-    #select correct section of times
     for t in TG:
         if t>=t_min and t<t_max:
             TG_suppl[t]=[];
@@ -343,13 +317,8 @@ def spinglass_partition(TG, t_min, t_max):
 
     new_graph=aggregate_graph(TG_suppl);
     print new_graph.number_of_nodes();
-
-#    nx.write_pajek(new_graph,'temp_graph.net');
-#    g=ig.read('temp_graph.net',format="pajek")
-#    os.remove('temp_graph.net');
     Q=nx_to_igraph(new_graph).community_spinglass()
     part_q={};
- #   print Q
     for i,mem in enumerate(Q.membership):
             part_q[i]=[];
             part_q[i]=mem;
@@ -359,8 +328,6 @@ def spinglass_partition(TG, t_min, t_max):
 def fast_modularity_partition(TG, t_min, t_max):
     import igraph as ig;
     import os;
-
-    #select correct section of times
     TG_suppl={};
     for t in TG:
         if t>=t_min and t<t_max:
@@ -368,26 +335,13 @@ def fast_modularity_partition(TG, t_min, t_max):
             TG_suppl[t]=TG[t];
 
     new_graph=aggregate_graph(TG_suppl);
-    #print new_graph.number_of_nodes();
-   
-#    nx.write_pajek(new_graph,'temp_graph.net');
-#    g=ig.read('temp_graph.net',format="pajek")
-#    os.remove('temp_graph.net');
     Q=nx_to_igraph(new_graph).community_fastgreedy();
     return Q; 
-#     part_q={};
-# #    print Q
-#     for i,mem in enumerate(Q.membership):
-#             part_q[i]=[];
-#             part_q[i]=mem;
-#     return part_q;
 
 
 def modularity_partition(TG, t_min, t_max):
     import igraph as ig;
     import os;
-
-    #select correct section of times
     TG_suppl={};
     for t in TG:
         if t>=t_min and t<t_max:
@@ -395,15 +349,9 @@ def modularity_partition(TG, t_min, t_max):
             TG_suppl[t]=TG[t];
 
     new_graph=aggregate_graph(TG_suppl);
-    #print new_graph.number_of_nodes();
-   
-#    nx.write_pajek(new_graph,'temp_graph.net');
-#    g=ig.read('temp_graph.net',format="pajek")
-#    os.remove('temp_graph.net');
     Q=nx_to_igraph(new_graph).community_optimal_modularity();
 
     part_q={};
-#    print Q
     for i,mem in enumerate(Q.membership):
             part_q[i]=[];
             part_q[i]=mem;
@@ -412,44 +360,19 @@ def modularity_partition(TG, t_min, t_max):
 def infomap_partition(TG, t_min, t_max):
     import igraph as ig;
     import os;
-
-    #select correct section of times
     TG_suppl={};
     for t in TG:
         if t>=t_min and t<t_max:
             TG_suppl[t]=[];
             TG_suppl[t]=TG[t];
-
     new_graph=aggregate_graph(TG_suppl);
-    #print new_graph.number_of_nodes();
-#    nx.write_pajek(new_graph,'temp_graph.net');
-#    g=ig.read('temp_graph.net',format="pajek")
-#    os.remove('temp_graph.net');
     Q=nx_to_igraph(new_graph).community_infomap()
-
     part_q={};
-#    print Q
     for i,mem in enumerate(Q.membership):
             part_q[i]=[];
             part_q[i]=mem;
-    #print 'Number of clusters = ', len(list(set(part_q.values())));
     return part_q;
 
-
-def fixed_delta_t_temporal_partition(TG, delta_t,mode='modularity',verbose=False):
-    T_partition={};
-    for t in range(0,len(TG)-delta_t, delta_t):
-        T_partition[t]=[];
-        if verbose==True:
-            print 'Calculating infomap of slice ', t; 
-        if mode=='modularity':
-            T_partition[t]=modularity_partition(TG,t,t+delta_t);
-        elif mode=='infomap':
-            T_partition[t]=infomap_partition(TG,t,t+delta_t);
-        elif mode=='fastgreedy':
-            print 'Greedy modularity chosen.'
-            T_partition[t]=fast_modularity_partition(TG,t,t+delta_t);
-    return T_partition;
 
 def slice_temporal_modularity_partition(TG,d):
     import community
@@ -463,122 +386,25 @@ def slice_temporal_modularity_partition(TG,d):
         T_partition[t]=community.best_partition(new_graph);
     return T_partition;
 
-def fixed_tau_m_series_partition(M_series,sm,w,tau,mode='multilevel',verbose=False):
-    tau_partition={}
-    for t in range(max(M_series.keys())):
-        if verbose==True:
-            print t;
-        tau_partition[t]=[];
-
-        M_disposable=np.eye(len(M_series[t]));
-        for i in range(tau+1):
-            M_disposable=np.dot(M_disposable,M_series[(t+i)%len(M_series)]);
-        M_disposable=np.dot(np.diag(w,0),M_disposable);# - sm;
-        print M_disposable
-        g=igraph.Graph.Weighted_Adjacency(list(np.array(M_disposable) + np.array(M_disposable).transpose()), attr="weight", loops=True);
-        g.to_undirected(combine_edges='mean');
-        print g.is_directed()
-        if mode=='multilevel':
-            tau_partition[t]=g.community_multilevel(weights='weight');
-        if mode=='fast_greedy':
-            tau_partition[t]=g.community_fastgreedy(weights='weight');
-        if mode=='leading_eigenvector':
-            tau_partition[t]=g.community_leading_eigenvector();
-        if mode=='optimal_modularity':
-            tau_partition[t]=g.community_optimal_modularity(verbose=True);
-        if mode=='spinglass':
-            tau_partition[t]=g.community_spinglass(weights='weight');
-        if mode=='infomap':
-            tau_partition[t]=g.community_infomap(edge_weights='weight');
-
-    return tau_partition;
-
-
-
-def fixed_tau_m_series_partition_no_igraph(M_series,sm,w,tau,verbose=False):
-    import community;
-    import matplotlib.pyplot as plt
-    tau_partition={}
-    for t in range(max(M_series.keys())):
-        if verbose==True:
-            print t;
-        tau_partition[t]=[];
-        M_disposable=np.eye(len(M_series[t]));
-        for i in range(tau+1):
-            M_disposable=np.dot(M_disposable,M_series[(t+i)%len(M_series)]);
-        M_disposable=np.dot(np.diag(w,0),M_disposable);# - sm;
-        g=nx.to_networkx_graph(M_disposable+M_disposable.T - np.diag(M_disposable.diagonal()) ,create_using=nx.Graph()); 
-        #print g.number_of_nodes(), g.number_of_edges(), sum(g.degree().values())
-        tau_partition[t] = community.best_partition(g);
-        if verbose==True:
-            plt.figure, plt.pcolor(np.array(nx.to_numpy_matrix(g))), plt.colorbar();
-            plt.show()
-            print tau_partition[t]
-    return tau_partition;
 
 def t_delta_matrix(matt,M_series,t,tau,verbose=False):    
     if verbose==True:
         print t;
-    #t_delta_matrix=mat;
-    #t_delta_matrix=np.dot(t_delta_matrix,M_series[(t+tau)%len(M_series)]);
-    #t_delta_matrix=np.dot(np.diag(w,0),t_delta_matrix);# - sm;
     return np.dot(matt,M_series[(t+tau)%len(M_series)]);
 
 def t_delta_partition(t_delta_matrix,sm,verbose=False):
     import community;
     g=nx.to_networkx_graph(t_delta_matrix+t_delta_matrix.T - np.diag(t_delta_matrix.diagonal()) ,create_using=nx.Graph()); 
-    # there is a problem here because we are not removing the null model!!!!! merdaccia cane!!!!!!
     if verbose==True:
         plt.figure, plt.pcolor(np.array(nx.to_numpy_matrix(g))), plt.colorbar();
         plt.show()
     return community.best_partition(g);
 
 
-def VI_quiver_plot(partitions_dict,verbose=False):
-    from pylab import *
-    from numpy import ma
-    U=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-    V=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-    X=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-    Y=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-    
-    n_deltas=len(partitions_dict);
-    for i,delta in enumerate(sorted(partitions_dict.keys())):
-        for j,t in enumerate(sorted(partitions_dict[delta].keys())):
-            X[i,j]=delta;
-            Y[i,j]=t;
-            try:
-                a=(ig.compare_communities(partitions_dict[delta][t].values(), partitions_dict[delta][partitions_dict[delta].keys()[j+1]%max(partitions_dict[delta].keys())].values()));
-                b=(ig.compare_communities(partitions_dict[partitions_dict.keys()[(i+1)%max(partitions_dict.keys())]][t].values(), partitions_dict[delta][t].values()));
-                if a!=0:
-                    U[i,j]=a;
-                if b!=0:
-                    V[i,j]=b;
-            except:
-                if verbose==True:
-                    print 'Error at:', (i,j),(delta,t)
-    
-    figure(figsize=(10,10))
-    Q = quiver( U, V)
-    qk = quiverkey(Q, 0.5, 0.92, 2, r'$2 \frac{m}{s}$', labelpos='W',
-                   fontproperties={'weight': 'bold'})
-    l,r,b,t = axis();
-    dx, dy = r-l, t-b
-    axis([l-0.05*dx, r+0.05*dx, b-0.05*dy, t+0.05*dy])
-
-    title('Minimal arguments, no kwargs');
-    show();
-
-    return X,Y,U,V;
-
-
-
 def VI_quiver_data(partitions_dict,mode='vi',verbose=False):
-    from pylab import *
     from numpy import ma
     import igraph as ig
     U=-1*np.ones((len(partitions_dict),len(partitions_dict[0])));
-    V=-1*np.ones((len(partitions_dict),len(partitions_dict[0])));
     X=np.zeros((len(partitions_dict),len(partitions_dict[0])));
     Y=np.zeros((len(partitions_dict),len(partitions_dict[0])));
     
@@ -589,20 +415,16 @@ def VI_quiver_data(partitions_dict,mode='vi',verbose=False):
             Y[i,j]=t;
             try:
                 a=(ig.compare_communities(partitions_dict[delta][t].values(), partitions_dict[delta][partitions_dict[delta].keys()[(j+1)%len(partitions_dict[delta].keys())]].values(),method=mode));
-               # b=(ig.compare_communities(partitions_dict[partitions_dict.keys()[(i+1)%len(partitions_dict.keys())]][t].values(), partitions_dict[delta][t].values(),method=mode));
                 if a>=0:
                     U[i,j]=a;
-                if b>=0:
-                    V[i,j]=b;
             except:
                 if verbose==True:
                     print 'Error at:', (i,j),(delta,t)
     
-    return X,Y,U,V;
+    return X,Y,U;#V;
 
 
 def VI_quiver_data_zero(partitions_dict,mode='vi',verbose=False):
-    from pylab import *
     from numpy import ma
     import igraph as ig
     U=-1*np.ones((len(partitions_dict),len(partitions_dict[0])));
@@ -612,42 +434,13 @@ def VI_quiver_data_zero(partitions_dict,mode='vi',verbose=False):
         for j,t in enumerate(sorted(partitions_dict[delta].keys())):
             try:
                 a=(ig.compare_communities(partitions_dict[delta][0].values(), partitions_dict[delta][t].values(), method=mode));
-#                b=(ig.compare_communities(partitions_dict[partitions_dict.keys()[(i+1)%len(partitions_dict.keys())]][t].values(), partitions_dict[delta][t].values(),method=mode));
                 if a>=0:
                     U[i][j]=a;
- #               if b>=0:
-  #                  V[i,j]=b;
             except:
                 if verbose==True:
                     print 'Error at:', (i,j),(delta,t)
     
     return U;
-
-
-def VI_quiver_data_zero_modded(partitions_dict,max_t,mode='vi',verbose=False):
-    from pylab import *
-    from numpy import ma
-    import igraph as ig
-    U={};#-1*np.ones((len(partitions_dict),len(partitions_dict[0])));
-    
-    n_deltas=len(partitions_dict);
-    for i,delta in enumerate(sorted(partitions_dict.keys())):
-        U[i]={}
-        for j,t in enumerate(sorted(partitions_dict[delta].keys())):
-            try:
-                if t+tau<max_t:
-                    a=(ig.compare_communities(partitions_dict[delta][0].values(), partitions_dict[delta][t].values(), method=mode));
-#                b=(ig.compare_communities(partitions_dict[partitions_dict.keys()[(i+1)%len(partitions_dict.keys())]][t].values(), partitions_dict[delta][t].values(),method=mode));
-                    if a>=0:
-                        U[i][j]=a;
- #               if b>=0:
-  #                  V[i,j]=b;
-            except:
-                if verbose==True:
-                    print 'Error at:', (i,j),(delta,t)
-    
-    return U;
-
 
 
 def entropy(labels):
@@ -672,76 +465,6 @@ def entropy(labels):
 
     return ent
 
-def NVI_quiver_data(partitions_dict,verbose=False):
-    from pylab import *
-    from numpy import ma
-    import igraph as ig
-    U=-1*np.ones((len(partitions_dict),len(partitions_dict[0])));
-    V=-1*np.ones((len(partitions_dict),len(partitions_dict[0])));
-    X=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-    Y=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-    
-    n_deltas=len(partitions_dict);
-    for i,delta in enumerate(sorted(partitions_dict.keys())):
-        for j,t in enumerate(sorted(partitions_dict[delta].keys())):
-            X[i,j]=delta;
-            Y[i,j]=t;
-            try:
-                a=(ig.compare_communities(partitions_dict[delta][t].values(), partitions_dict[delta][partitions_dict[delta].keys()[(j+1)%len(partitions_dict[delta].keys())]].values()));
-                b=(ig.compare_communities(partitions_dict[delta][t].values()),partitions_dict[partitions_dict.keys()[(i+1)%len(partitions_dict.keys())]][t].values());
-                
-                if entropy(partitions_dict[delta][t].values())!=0:
-                    U[i,j]=a/(entropy(partitions_dict[delta][t].values()));
-                else:
-                    U[i,j]=entropy(partitions_dict[delta][partitions_dict[delta].keys()[(j+1)%len(partitions_dict[delta].keys())]].values());
-                
-                if entropy(partitions_dict[delta][t].values())!=0:
-                    V[i,j]=b/entropy(partitions_dict[delta][t].values());
-                else:
-                    V[i,j]=entropy(partitions_dict[partitions_dict.keys()[(i+1)%len(partitions_dict.keys())]][t].values());
-            except:
-                if verbose==True:
-                    print 'Error at:', (i,j),(delta,t)
-    
-    return X,Y,U,V;
-
-# def NVI_quiver_data_pandas(partitions_dict,verbose=False):
-#     from pylab import *
-#     from numpy import ma;
-#     import igraph as ig;
-#     import pandas as pd;
-#     U=pd.DataFrame
-#     V=-1*np.ones((len(partitions_dict),len(partitions_dict[0])));
-#     X=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-#     Y=np.zeros((len(partitions_dict),len(partitions_dict[0])));
-    
-#     n_deltas=len(partitions_dict);
-#     for i,delta in enumerate(sorted(partitions_dict.keys())):
-#         for j,t in enumerate(sorted(partitions_dict[delta].keys())):
-#             X[i,j]=delta;
-#             Y[i,j]=t;
-#             try:
-#                 a=(ig.compare_communities(partitions_dict[delta][t].values(), partitions_dict[delta][partitions_dict[delta].keys()[(j+1)%len(partitions_dict[delta].keys())]].values()));
-#                 b=(ig.compare_communities(partitions_dict[delta][t].values()),partitions_dict[partitions_dict.keys()[(i+1)%len(partitions_dict.keys())]][t].values());
-                
-#                 if entropy(partitions_dict[delta][t].values())!=0:
-#                     U[i,j]=a/(entropy(partitions_dict[delta][t].values()));
-#                 else:
-#                     U[i,j]=entropy(partitions_dict[delta][partitions_dict[delta].keys()[(j+1)%len(partitions_dict[delta].keys())]].values());
-                
-#                 if entropy(partitions_dict[delta][t].values())!=0:
-#                     V[i,j]=b/entropy(partitions_dict[delta][t].values());
-#                 else:
-#                     V[i,j]=entropy(partitions_dict[partitions_dict.keys()[(i+1)%len(partitions_dict.keys())]][t].values());
-#             except:
-#                 if verbose==True:
-#                     print 'Error at:', (i,j),(delta,t)
-    
-#     return X,Y,U,V;
-
-
-
-
 
 def temporal_stats(real_TG):
     av_real=[];
@@ -758,9 +481,6 @@ def temporal_stats(real_TG):
     print 'Average temporal degree ', np.mean(av_real)
     print 'Average number of active nodes ', np.mean(active_nodes)/float(real_TG[t].number_of_nodes())
 
-#########################################################################################################
-##################### New code for activity values etc (it works @15/6/2013)
-####################################################################################################################
 
 def activity_potential(TG):
     activity_V={}
